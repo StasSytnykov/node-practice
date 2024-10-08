@@ -3,7 +3,10 @@ import { createServer } from "node:http";
 import { open, readFile, rm, readdir, access, mkdir } from "fs/promises";
 import { randomUUID } from "node:crypto";
 import { extension, contentType } from "mime-types";
+import querystring from "querystring";
+import url from "url";
 import path from "path";
+import sharp from "sharp";
 
 const IMAGES_DIR_NAME = "images";
 const IMAGES_DIR_PATH = path.join(".", IMAGES_DIR_NAME);
@@ -38,7 +41,11 @@ const server = createServer(async (req, res) => {
     req.url.startsWith("/image") &&
     !req.url.includes("images")
   ) {
-    const fileName = req.url.split("/").pop();
+    const fileName = req.url.includes("?")
+      ? req.url.split("/").pop().split("?")[0]
+      : req.url.split("/").pop();
+    const parsedUrl = url.parse(req.url);
+    const { height, width } = querystring.parse(parsedUrl.query);
 
     const file = await readFile(path.join(IMAGES_DIR_PATH, fileName)).catch(
       (error) => {
@@ -52,10 +59,13 @@ const server = createServer(async (req, res) => {
       }
     );
 
+    const resizedFile = await sharp(file)
+      .resize(Number(height), Number(width))
+      .toBuffer();
     res.statusCode = 200;
     res.setHeader("Content-Type", contentType(fileName));
     res.setHeader("Content-Disposition", `attachment; ${fileName}`);
-    res.end(file);
+    res.end(resizedFile);
     return;
   }
 
