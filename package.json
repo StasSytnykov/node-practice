@@ -12,11 +12,13 @@
   "license": "ISC",
   "description": "",
   "devDependencies": {
+    "@types/mime-types": "^2.1.4",
     "@types/websocket": "^1.0.10",
     "nodemon": "^3.1.7",
     "pretier": "^0.0.1"
   },
   "dependencies": {
+    "mime-types": "^2.1.35",
     "websocket": "^1.0.35"
   }
 }
