@@ -1,0 +1,22 @@
+{
+  "name": "node",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "nodemon index.mjs",
+    "socket": "nodemon websocket.mjs"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "devDependencies": {
+    "@types/websocket": "^1.0.10",
+    "nodemon": "^3.1.7",
+    "pretier": "^0.0.1"
+  },
+  "dependencies": {
+    "websocket": "^1.0.35"
+  }
+}
