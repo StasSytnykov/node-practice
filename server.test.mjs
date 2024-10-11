@@ -22,7 +22,7 @@ describe("Integretion tests", () => {
     });
   });
 
-  afterAll(async () => {
+  afterEach(async () => {
     await emptyDir(dir);
   });
 
@@ -32,7 +32,7 @@ describe("Integretion tests", () => {
   });
 
   describe("POST / image", () => {
-    test("save file with correct extension", async () => {
+    test("save file with correct extension and name", async () => {
       await axios.post("/image", Buffer.alloc(1024), {
         headers: {
           "Content-Type": "image/jpeg",
@@ -43,6 +43,28 @@ describe("Integretion tests", () => {
 
       expect(fileName).toMatch(UUID_REGEX);
       expect(fileExtension).toBe("jpeg");
+    });
+
+    test("response contains correct code and filename", async () => {
+      const response = await axios.post("/image", Buffer.alloc(1024), {
+        headers: {
+          "Content-Type": "image/jpeg",
+        },
+      });
+
+      const [file] = await readdir(dir);
+
+      expect(response.data).toBe(file);
+      expect(response.status).toBe(201);
+    });
+  });
+
+  describe("GET / images", () => {
+    test("get list of images", async () => {
+      const response = await axios("/images");
+      const images = await readdir(dir);
+      expect(response.data.length).toBe(images.length);
+      expect(response.status).toBe(200);
     });
   });
 });

@@ -93,20 +93,11 @@ export const createSimpleServer = async (dirPath) => {
     }
 
     if (req.method === "GET" && req.url === "/images") {
-      try {
-        const files = await readdir(dirPath);
+      const files = await readdir(dirPath);
 
-        res.statusCode = 200;
-        res.setHeader("Content-type", contentType("json"));
-        res.end(JSON.stringify(files));
-      } catch (error) {
-        res.statusCode = 404;
-        res.end(
-          JSON.stringify({
-            message: "Images not found",
-          })
-        );
-      }
+      res.statusCode = 200;
+      res.setHeader("Content-type", contentType("json"));
+      res.end(JSON.stringify(files));
     }
   });
 
