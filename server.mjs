@@ -27,16 +27,23 @@ export const prepare = async () => {
 export const createSimpleServer = async (dirPath) => {
   const server = createServer(async (req, res) => {
     if (req.method === "POST" && req.url === "/image") {
-      const fileName = `${randomUUID()}.${extension(
-        req.headers["content-type"]
-      )}`;
-      const file = await open(path.join(dirPath, fileName), "a");
-      req.pipe(file.createWriteStream());
-      res.statusCode = 201;
-      res.setHeader("Content-Type", "application/json");
-      res.end(fileName);
+      try {
+        const fileName = `${randomUUID()}.${extension(
+          req.headers["content-type"]
+        )}`;
+        const file = await open(path.join(dirPath, fileName), "a");
+        req.pipe(file.createWriteStream());
+        res.statusCode = 201;
+        res.setHeader("Content-Type", "application/json");
+        res.end(fileName);
 
-      wsServer.emit("action", `Added image ${fileName}`);
+        wsServer.emit("action", `Added image ${fileName}`);
+      } catch (error) {
+        console.log(error);
+        res.setHeader("Content-type", contentType("html"));
+        res.statusCode = 404;
+        res.end("<h1>Not Found</h1>");
+      }
     }
 
     if (
@@ -44,32 +51,35 @@ export const createSimpleServer = async (dirPath) => {
       req.url.startsWith("/image") &&
       !req.url.includes("images")
     ) {
-      const fileName = req.url.includes("?")
-        ? req.url.split("/").pop().split("?")[0]
-        : req.url.split("/").pop();
-      const parsedUrl = url.parse(req.url);
-      const { height, width } = querystring.parse(parsedUrl.query);
+      try {
+        const fileName = req.url.includes("?")
+          ? req.url.split("/").pop().split("?")[0]
+          : req.url.split("/").pop();
+        const parsedUrl = url.parse(req.url);
+        const { height, width } = querystring.parse(parsedUrl.query);
 
-      const file = await readFile(path.join(dirPath, fileName)).catch(
-        (error) => {
-          console.log(error);
-          res.statusCode = 404;
-          res.end(
-            JSON.stringify({
-              message: `Image with name ${fileName} not found`,
-            })
-          );
+        const file = await readFile(path.join(dirPath, fileName));
+
+        if (height && width) {
+          const resizedFile = await sharp(file)
+            .resize(Number(height), Number(width))
+            .toBuffer();
+          res.statusCode = 200;
+          res.setHeader("Content-Type", contentType(fileName));
+          res.setHeader("Content-Disposition", `attachment; ${fileName}`);
+          res.end(resizedFile);
+        } else {
+          res.statusCode = 200;
+          res.setHeader("Content-Type", contentType(fileName));
+          res.setHeader("Content-Disposition", `attachment; ${fileName}`);
+          res.end(file);
         }
-      );
-
-      const resizedFile = await sharp(file)
-        .resize(Number(height), Number(width))
-        .toBuffer();
-      res.statusCode = 200;
-      res.setHeader("Content-Type", contentType(fileName));
-      res.setHeader("Content-Disposition", `attachment; ${fileName}`);
-      res.end(resizedFile);
-      return;
+      } catch (error) {
+        console.log(error);
+        res.setHeader("Content-type", contentType("html"));
+        res.statusCode = 404;
+        res.end("<h1>Not Found</h1>");
+      }
     }
 
     if (req.method === "DELETE" && req.url.startsWith("/image")) {
@@ -77,27 +87,27 @@ export const createSimpleServer = async (dirPath) => {
       try {
         await rm(path.join(dirPath, fileName));
         wsServer.emit("action", `Deleted image with name ${fileName}`);
+        res.statusCode = 204;
+        res.end();
       } catch (error) {
-        console.log(error);
+        res.setHeader("Content-type", contentType("html"));
         res.statusCode = 404;
-        res.end(
-          JSON.stringify({
-            message: `Image with name ${fileName} not found`,
-          })
-        );
+        res.end(`<h1>Image with name ${fileName} not found!</h1>`);
       }
-
-      res.statusCode = 204;
-      res.end();
-      return;
     }
 
     if (req.method === "GET" && req.url === "/images") {
-      const files = await readdir(dirPath);
+      try {
+        const files = await readdir(dirPath);
 
-      res.statusCode = 200;
-      res.setHeader("Content-type", contentType("json"));
-      res.end(JSON.stringify(files));
+        res.statusCode = 200;
+        res.setHeader("Content-type", contentType("json"));
+        res.end(JSON.stringify(files));
+      } catch (error) {
+        res.setHeader("Content-type", contentType("html"));
+        res.statusCode = 404;
+        res.end("<h1>Not Found</h1>");
+      }
     }
   });
 
