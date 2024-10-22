@@ -63,8 +63,36 @@ describe("Integretion tests", () => {
     test("get list of images", async () => {
       const response = await axios("/images");
       const images = await readdir(dir);
+
       expect(response.data.length).toBe(images.length);
       expect(response.status).toBe(200);
+    });
+  });
+
+  describe("DELETE / image", () => {
+    test("delete one image", async () => {
+      await axios.post("/image", Buffer.alloc(1024), {
+        headers: {
+          "Content-Type": "image/jpeg",
+        },
+      });
+      const files = await readdir(dir);
+      const response = await axios.delete(`/image/${files[0]}`);
+
+      expect(response.status).toBe(204);
+    });
+
+    test("show error code 404 if we don't have this image", async () => {
+      let requestStatus;
+
+      const files = await readdir(dir);
+      try {
+        await axios.delete(`/image/${files[0]}`);
+      } catch (error) {
+        requestStatus = error.status;
+      }
+
+      expect(requestStatus).toBe(404);
     });
   });
 });
