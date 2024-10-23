@@ -1,6 +1,6 @@
 import axios from "axios";
 import { tmpdir } from "node:os";
-import { createSimpleServer } from "./server.mjs";
+import { createSimpleServer } from "../server.mjs";
 import { mkdtemp, rm, readdir } from "node:fs/promises";
 import path from "node:path";
 import { emptyDir } from "fs-extra";

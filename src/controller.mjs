@@ -1,12 +1,10 @@
 import WebSocketServer from "websocket";
 import { createServer } from "node:http";
-import { open, readFile, rm, readdir, access, mkdir } from "fs/promises";
-import { randomUUID } from "node:crypto";
-import { extension, contentType } from "mime-types";
-import querystring from "querystring";
-import url from "url";
+import { access, mkdir, readFile } from "fs/promises";
+import { contentType } from "mime-types";
 import path from "path";
 import sharp from "sharp";
+import { createFile, listOfFiles, getFile, deleteFile } from "./model.mjs";
 
 export const prepare = async () => {
   const IMAGES_DIR_NAME = "images";
@@ -24,20 +22,14 @@ export const prepare = async () => {
   return IMAGES_DIR_PATH;
 };
 
-export const createSimpleServer = async (dirPath) => {
+export const createSimpleServer = async (dirPath, port) => {
   const server = createServer(async (req, res) => {
     if (req.method === "POST" && req.url === "/image") {
       try {
-        const fileName = `${randomUUID()}.${extension(
-          req.headers["content-type"]
-        )}`;
-        const file = await open(path.join(dirPath, fileName), "a");
-        req.pipe(file.createWriteStream());
+        const data = await createFile(req, dirPath, wsServer);
         res.statusCode = 201;
         res.setHeader("Content-Type", "application/json");
-        res.end(fileName);
-
-        wsServer.emit("action", `Added image ${fileName}`);
+        res.end(data);
       } catch (error) {
         console.log(error);
         res.setHeader("Content-type", contentType("html"));
@@ -51,14 +43,11 @@ export const createSimpleServer = async (dirPath) => {
       req.url.startsWith("/image") &&
       !req.url.includes("images")
     ) {
+      const fileName = req.url.includes("?")
+        ? req.url.split("/").pop().split("?")[0]
+        : req.url.split("/").pop();
       try {
-        const fileName = req.url.includes("?")
-          ? req.url.split("/").pop().split("?")[0]
-          : req.url.split("/").pop();
-        const parsedUrl = url.parse(req.url);
-        const { height, width } = querystring.parse(parsedUrl.query);
-
-        const file = await readFile(path.join(dirPath, fileName));
+        const { file, height, width } = await getFile(req, dirPath, fileName);
 
         if (height && width) {
           const resizedFile = await sharp(file)
@@ -85,8 +74,7 @@ export const createSimpleServer = async (dirPath) => {
     if (req.method === "DELETE" && req.url.startsWith("/image")) {
       const fileName = req.url.split("/").pop();
       try {
-        await rm(path.join(dirPath, fileName));
-        wsServer.emit("action", `Deleted image with name ${fileName}`);
+        await deleteFile(dirPath, fileName, wsServer);
         res.statusCode = 204;
         res.end();
       } catch (error) {
@@ -98,20 +86,32 @@ export const createSimpleServer = async (dirPath) => {
 
     if (req.method === "GET" && req.url === "/images") {
       try {
-        const files = await readdir(dirPath);
-
+        const data = await listOfFiles(dirPath);
         res.statusCode = 200;
         res.setHeader("Content-type", contentType("json"));
-        res.end(JSON.stringify(files));
+        res.end(data);
       } catch (error) {
         res.setHeader("Content-type", contentType("html"));
         res.statusCode = 404;
         res.end("<h1>Not Found</h1>");
       }
     }
+
+    if (req.url === "/swagger-api") {
+      try {
+        const file = await readFile(path.join("./swagger", "index.html"));
+
+        res.writeHead(200, { "Content-Type": contentType("html") });
+        res.end(file, "utf-8");
+      } catch (error) {
+        res.setHeader("Content-type", contentType("html"));
+        res.statusCode = 404;
+        res.end("<h1>Swagger not found</h1>");
+      }
+    }
   });
 
-  server.listen(() => {
+  server.listen(port, () => {
     console.log(`Server running at http://localhost:${server.address().port}/`);
   });
 
