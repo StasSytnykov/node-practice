@@ -2,4 +2,6 @@ import { prepare, createSimpleServer } from "./src/controller.mjs";
 
 const dir = await prepare();
 
-await createSimpleServer(dir, 4000);
+const port = process.env.PORT || 8000;
+
+await createSimpleServer(dir, port);

@@ -4,7 +4,7 @@
   "main": "index.js",
   "scripts": {
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
-    "dev": "nodemon index.mjs",
+    "dev": "nodemon -r dotenv/config index.mjs",
     "socket": "nodemon websocket.mjs"
   },
   "keywords": [],
@@ -22,8 +22,11 @@
   },
   "dependencies": {
     "axios": "^1.7.7",
+    "dotenv": "^16.4.5",
     "mime-types": "^2.1.35",
+    "morgan": "^1.10.0",
     "sharp": "^0.33.5",
-    "websocket": "^1.0.35"
+    "websocket": "^1.0.35",
+    "winston": "^3.15.0"
   }
 }
